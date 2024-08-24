@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Application</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Import Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap">
+</head>
+<body>
+    <div class="container">
+        <!-- Heading -->
+        <div class="heading">
+            <h1>Autocomplete and Search Application</h1>
+        </div>
+
+        <!-- Centered Search Bar -->
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Search City Name e.g. hyderabad" class="search-bar">
+            <button id="search-btn" class="search-button" onclick="Search()">Search</button>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-container">
+            <div class="results-row">
+                <!-- Single Hashing Search Results -->
+                <div class="result-section">
+                    <h3>Hashing (Rabin-Karp) Results</h3>
+                    <div id="hashmap-results" class="results-box"></div>
+                </div>
+
+                <!-- Trie Search Results -->
+                <div class="result-section">
+                    <h3>Trie Search Results</h3>
+                    <div id="trie-results" class="results-box"></div>
+                </div>
+
+                <!-- Edit Distance Search Results -->
+                <div class="result-section">
+                    <h3>Edit Distance Search Results</h3>
+                    <div id="edit-distance-results" class="results-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
