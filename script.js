@@ -1,344 +1,184 @@
-// script.js
+// Function to initialize the search functionality after loading city data
+function initCitySearch(rawWords) {
+  // 1) Normalize all words to lowercase
+  const words = rawWords.map(w => w.toLowerCase());
+  console.log("Loaded words:", words.length, "entries");  // sanity check
 
-const words = [
-  "delhi",
-  "mumbai",
-  "bangalore",
-  "hyderabad",
-  "chennai",
-  "kolkata",
-  "pune",
-  "ahmedabad",
-  "jaipur",
-  "lucknow",
-  "kanpur",
-  "nagpur",
-  "indore",
-  "bhopal",
-  "coimbatore",
-  "visakhapatnam",
-  "ranchi",
-  "patna",
-  "jabalpur",
-  "agra",
-  "meerut",
-  "varanasi",
-  "amritsar",
-  "nagapattinam",
-  "gwalior",
-  "chandigarh",
-  "udaipur",
-  "mangalore",
-  "tiruchirappalli",
-  "surat",
-  "vadodara",
-  "rajkot",
-  "guwahati",
-  "dehradun",
-  "shillong",
-  "port blair",
-  "dhanbad",
-  "jamshedpur",
-  "howrah",
-  "nashik",
-  "solapur",
-  "jodhpur",
-  "srinagar",
-  "kota",
-  "aligarh",
-  "kalyan",
-  "thane",
-  "bhubaneswar",
-  "hubbali",
-  "vijayawada",
-  "kakinada",
-  "tirupati",
-  "agra",
-  "kanchipuram",
-  "ludhiana",
-  "kota",
-  "aizawl",
-  "dispur",
-  "dibrugarh",
-  "silchar",
-  "jorhat",
-  "imphal",
-  "agartala",
-  "kohima",
-  "tura",
-  "jalandhar",
-  "mohali",
-  "siliguri",
-  "jammu",
-  "ranikhet",
-  "kullu",
-  "manali",
-  "shimla",
-  "haridwar",
-  "mussoorie",
-  "almora",
-  "nainital",
-  "bhilwara",
-  "kota",
-  "shahjahanpur",
-  "etawah",
-  "firozabad",
-  "jhansi",
-  "saharanpur",
-  "meerut",
-  "bulandshahr",
-  "unnao",
-  "budaun",
-  "etawah",
-  "mau",
-  "siddharthnagar",
-  "sultanpur",
-  "azamgarh",
-  "gorakhpur",
-  "ballia",
-  "chandauli",
-  "kushinagar",
-  "raebareli",
-  "hardoi",
-  "kanpur",
-  "etawah",
-  "basti",
-  "deoria",
-];
-
-// Trie Data Structure
-class TrieNode {
-  constructor() {
-    this.children = {};
-    this.isEndOfWord = false;
-  }
-}
-
-class Trie {
-  constructor() {
-    this.root = new TrieNode();
+  // --- Trie Data Structure ---
+  class TrieNode {
+    constructor() {
+      this.children = {};
+      this.isEndOfWord = false;
+    }
   }
 
-  insert(word) {
-    let currentNode = this.root;
-    for (let char of word) {
-      if (!currentNode.children[char]) {
-        currentNode.children[char] = new TrieNode();
+  class Trie {
+    constructor() {
+      this.root = new TrieNode();
+    }
+
+    insert(word) {
+      let node = this.root;
+      for (let c of word) {
+        if (!node.children[c]) node.children[c] = new TrieNode();
+        node = node.children[c];
       }
-      currentNode = currentNode.children[char];
+      node.isEndOfWord = true;
     }
-    currentNode.isEndOfWord = true;
-  }
 
-  search(prefix) {
-    let currentNode = this.root;
-    for (let char of prefix) {
-      if (!currentNode.children[char]) {
-        return [];
+    search(prefix) {
+      let node = this.root;
+      for (let c of prefix) {
+        if (!node.children[c]) return [];
+        node = node.children[c];
       }
-      currentNode = currentNode.children[char];
+      return this._collect(node, prefix);
     }
-    return this._findWordsFromNode(currentNode, prefix);
+
+    _collect(node, prefix) {
+      const res = [];
+      if (node.isEndOfWord) res.push(prefix);
+      for (let c in node.children) {
+        res.push(...this._collect(node.children[c], prefix + c));
+      }
+      return res;
+    }
   }
 
-  _findWordsFromNode(node, prefix) {
-    let results = [];
-    if (node.isEndOfWord) results.push(prefix);
-    for (let char in node.children) {
-      results.push(
-        ...this._findWordsFromNode(node.children[char], prefix + char)
-      );
-    }
-    return results;
-  }
-}
-
-// Edit Distance Function
-function getEditDistance(word1, word2) {
-  const m = word1.length;
-  const n = word2.length;
-  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (word1[i - 1] === word2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1];
-      } else {
-        dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+  // --- Edit Distance (Levenshtein) ---
+  function getEditDistance(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m+1}, () => Array(n+1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = a[i-1] === b[j-1]
+          ? dp[i-1][j-1]
+          : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
       }
     }
+    return dp[m][n];
   }
 
-  return dp[m][n];
-}
+  // --- Rabin-Karp Hashing Search ---
+  function HashingSearch(text, pattern) {
+    text = text.toLowerCase();
+    pattern = pattern.toLowerCase();
+    const p = 31, m = 1e9+9;
+    const S = text.length, P = pattern.length;
+    if (P > S) return false;
 
-// Single Hashing Function
-// function HashingSearch(text, pattern) {
-//   const p = 31;
-//   const m = 1e9 + 9;
+    // precompute p^P % m
+    let pPow = 1;
+    for (let i = 0; i < P; i++) pPow = (pPow * p) % m;
 
-//   const S = text.length;
-//   const P = pattern.length;
+    // hash of pattern & first window
+    let hashPat = 0, hashTxt = 0;
+    for (let i = 0; i < P; i++) {
+      hashPat = (hashPat * p + (pattern.charCodeAt(i) - 96)) % m;
+      hashTxt = (hashTxt * p + (text.charCodeAt(i) - 96)) % m;
+    }
 
-//   let pPow = 1;
-//   for (let i = 0; i < P; i++) {
-//     pPow = (pPow * p) % m;
-//   }
-
-//   let patternHash = 0;
-//   for (let i = 0; i < P; i++) {
-//     patternHash =
-//       (patternHash * p + (pattern.charCodeAt(i) - "a".charCodeAt(0) + 1)) % m;
-//   }
-
-//   let currentHash = 0;
-//   for (let i = 0; i < P; i++) {
-//     currentHash =
-//       (currentHash * p + (text.charCodeAt(i) - "a".charCodeAt(0) + 1)) % m;
-//   }
-
-//   for (let i = 0; i + P - 1 < S; i++) {
-//     if (patternHash === currentHash) {
-//       if (text.substr(i, P) === pattern) {
-//         return true;
-//       }
-//     }
-
-//     if (i + P < S) {
-//       currentHash =
-//         (currentHash * p -
-//           (text.charCodeAt(i) - "a".charCodeAt(0) + 1) * pPow +
-//           (text.charCodeAt(i + P) - "a".charCodeAt(0) + 1)) %
-//         m;
-//       if (currentHash < 0) currentHash += m;
-//     }
-//   }
-
-//   return false;
-// }
-
-function HashingSearch(text, pattern) {
-  const p1 = 31;
-  const p2 = 37;
-  const m = 1e9 + 9;
-
-  const S = text.length;
-  const P = pattern.length;
-
-  let p1Pow = 1;
-  let p2Pow = 1;
-  for (let i = 0; i < P; i++) {
-    p1Pow = (p1Pow * p1) % m;
-    p2Pow = (p2Pow * p2) % m;
-  }
-
-  let patternHash1 = 0;
-  let patternHash2 = 0;
-  for (let i = 0; i < P; i++) {
-    patternHash1 =
-      (patternHash1 * p1 + (pattern.charCodeAt(i) - "a".charCodeAt(0) + 1)) % m;
-    patternHash2 =
-      (patternHash2 * p2 + (pattern.charCodeAt(i) - "a".charCodeAt(0) + 1)) % m;
-  }
-
-  let currentHash1 = 0;
-  let currentHash2 = 0;
-  for (let i = 0; i < P; i++) {
-    currentHash1 =
-      (currentHash1 * p1 + (text.charCodeAt(i) - "a".charCodeAt(0) + 1)) % m;
-    currentHash2 =
-      (currentHash2 * p2 + (text.charCodeAt(i) - "a".charCodeAt(0) + 1)) % m;
-  }
-
-  for (let i = 0; i + P - 1 < S; i++) {
-    if (patternHash1 === currentHash1 && patternHash2 === currentHash2) {
-      if (text.substr(i, P) === pattern) {
+    for (let i = 0; i + P <= S; i++) {
+      if (hashPat === hashTxt && text.substr(i, P) === pattern) {
         return true;
       }
+      // roll the hash
+      if (i + P < S) {
+        hashTxt = (
+          hashTxt * p
+          - (text.charCodeAt(i) - 96) * pPow
+          + (text.charCodeAt(i + P) - 96)
+        ) % m;
+        if (hashTxt < 0) hashTxt += m;
+      }
     }
-
-    if (i + P < S) {
-      currentHash1 =
-        (currentHash1 * p1 -
-          (text.charCodeAt(i) - "a".charCodeAt(0) + 1) * p1Pow +
-          (text.charCodeAt(i + P) - "a".charCodeAt(0) + 1)) %
-        m;
-      if (currentHash1 < 0) currentHash1 += m;
-
-      currentHash2 =
-        (currentHash2 * p2 -
-          (text.charCodeAt(i) - "a".charCodeAt(0) + 1) * p2Pow +
-          (text.charCodeAt(i + P) - "a".charCodeAt(0) + 1)) %
-        m;
-      if (currentHash2 < 0) currentHash2 += m;
-    }
+    return false;
   }
 
-  return false;
-}
-
-function SearchHash(query) {
-  const results = [];
-  words.forEach((word) => {
-    if (HashingSearch(word, query)) {
-      results.push(word);
+  // --- Fixed SearchHash: breakable loop + lowercase words ---
+  function SearchHash(query) {
+    query = query.toLowerCase();
+    const res = [];
+    for (let w of words) {
+      if (HashingSearch(w, query)) {
+        res.push(w);
+        if (res.length === 5) break;
+      }
     }
-    if (results.length == 5) {
-      return results;
+    return res;
+  }
+
+  // build the trie
+  const trie = new Trie();
+  for (let w of words) trie.insert(w);
+
+  // --- Input handler ---
+  document.getElementById("search").addEventListener("input", function () {
+    const query = this.value.trim().toLowerCase();
+    if (!query) {
+      ["hashmap-results","trie-results","edit-distance-results","performance-box"]
+        .forEach(id => document.getElementById(id).innerHTML = "");
+      return;
     }
-  });
-  return results.slice(0, 5); // Limit to 5 results
-}
 
-const trie = new Trie();
-words.forEach((word) => trie.insert(word));
+    // Hashing
+    const t0 = performance.now();
+    const hRes = SearchHash(query);
+    const t1 = performance.now();
+    document.getElementById("hashmap-results").innerHTML = hRes.length
+      ? hRes.map(w => `<p>${w}</p>`).join("")
+      : "<p>No results found using Hashing.</p>";
 
-// Handling input and searches
-document.getElementById("search").addEventListener("input", function () {
-  const query = this.value.toLowerCase();
-  if (query) {
-    // Single Hashing search results
-    const DHashingResult = SearchHash(query);
-    document.getElementById("hashmap-results").innerHTML = DHashingResult.length
-      ? DHashingResult.map((word) => `<p>${word}</p>`).join("")
-      : "<p>No results found using Single Hashing.</p>";
-
-    // Trie search results
-    const trieResults = trie.search(query).slice(0, 5);
-    document.getElementById("trie-results").innerHTML = trieResults.length
-      ? trieResults.map((word) => `<p>${word}</p>`).join("")
+    // Trie
+    const t2 = performance.now();
+    const trRes = trie.search(query).slice(0,5);
+    const t3 = performance.now();
+    document.getElementById("trie-results").innerHTML = trRes.length
+      ? trRes.map(w => `<p>${w}</p>`).join("")
       : "<p>No results found in Trie.</p>";
 
-    // Edit distance results, sorted by distance, limited to 5 results
-    const editDistanceResults = words
-      .map((word) => ({
-        word: word,
-        distance: getEditDistance(query, word),
-      }))
-      .filter((result) => result.distance <= 2)
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 5);
+    // Edit Distance
+    const t4 = performance.now();
+    const edRes = words
+      .map(w => ({ w, d: getEditDistance(query, w) }))
+      .filter(o => o.d <= 2)
+      .sort((a,b) => a.d - b.d)
+      .slice(0,5);
+    const t5 = performance.now();
+    document.getElementById("edit-distance-results").innerHTML = edRes.length
+      ? edRes.map(o => `<p>${o.w} (Distance: ${o.d})</p>`).join("")
+      : "<p>No results within edit‑distance ≤ 2.</p>";
 
-    document.getElementById("edit-distance-results").innerHTML =
-      editDistanceResults.length
-        ? editDistanceResults
-            .map(
-              (result) => `<p>${result.word} (Distance: ${result.distance})</p>`
-            )
-            .join("")
-        : "<p>No results found using Edit Distance.</p>";
-  } else {
-    document.getElementById("hashmap-results").innerHTML = "";
-    document.getElementById("trie-results").innerHTML = "";
-    document.getElementById("edit-distance-results").innerHTML = "";
-  }
-});
+    // Performance
+    const hashTime = (t1 - t0)*1000;
+    const trieTime = Math.max(0.01,(t3 - t2)*1000);
+    const editTime = (t5 - t4)*1000;
+    document.getElementById("performance-box").innerHTML = `
+      <p>Trie: ${trieTime.toFixed(2)} µs</p>
+      <p>Hashing: ${hashTime.toFixed(2)} µs</p>
+      <p>Edit Dist: ${editTime.toFixed(2)} µs</p>
+      <p><strong>Hashing vs Trie:</strong> ${(hashTime/trieTime).toFixed(2)}×</p>
+      <p><strong>Edit vs Trie:</strong> ${(editTime/trieTime).toFixed(2)}×</p>
+    `;
+  });
 
-function Search() {
-  query = document.getElementById("search").value;
-  url = "http://www.google.com/search?q=" + query;
-  window.open(url, "_blank");
+  // optional “Search” button handler
+  window.Search = function() {
+    const q = document.getElementById("search").value;
+    if (q) window.open("https://www.google.com/search?q="+encodeURIComponent(q), "_blank");
+  };
 }
+
+// Fetch and kick things off
+fetch("data.json")
+  .then(r => r.json())
+  .then(arr => {
+    if (!Array.isArray(arr) || arr.length === 0) {
+      console.error("data.json didn’t return a non‑empty array!");
+      return;
+    }
+    initCitySearch(arr);
+  })
+  .catch(err => console.error("Error loading data.json:", err));
